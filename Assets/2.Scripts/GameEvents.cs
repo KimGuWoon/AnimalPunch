@@ -3,6 +3,13 @@ using UnityEngine;
 
 public static class GameEvents
 {
+    // 스테이지 텍스트(인트로) 종료 신호 
+    public static event System.Action OnStageIntroFinished;
+    public static void TriggerStageIntroFinished()
+    {
+        OnStageIntroFinished?.Invoke();
+    }
+
     // 가위바위보 완료 → 플레이어와 AI 선택 결과 전달
     public static event Action<RPSHandler.RPS, RPSHandler.RPS> OnRPSFinished;
     public static void RPSFinished(RPSHandler.RPS player, RPSHandler.RPS ai)

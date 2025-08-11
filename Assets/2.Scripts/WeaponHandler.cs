@@ -8,9 +8,10 @@ public class WeaponHandler : MonoBehaviour
 {
     public GameObject panel;
     public GameObject btnHammer;
-    public GameObject btnBak;
+    public GameObject btnBak;   
 
-    public static event Action OnWeaponSelected;
+    private enum AllowedWeapon { Hammer, Bak }
+    private AllowedWeapon allowedForPlayer;
 
     private void Awake()
     {
@@ -31,29 +32,32 @@ public class WeaponHandler : MonoBehaviour
     {
         panel.SetActive(true);
 
-        btnHammer.SetActive(isPlayerWinner);
-        btnBak.SetActive(!isPlayerWinner);
+        // 버튼은 항상 둘 다 보이게
+        btnHammer.SetActive(true);
+        btnBak.SetActive(true);
+
+        // 내부적으로만 제한(승자=해머, 패자=박)
+        allowedForPlayer = isPlayerWinner ? AllowedWeapon.Hammer : AllowedWeapon.Bak;
     }
 
     public void OnClick_Hammer()
     {
-        if (!btnHammer.activeSelf)
+        if (allowedForPlayer != AllowedWeapon.Hammer)
         {
             Debug.Log("You chose the wrong weapon");
-            GameEvents.ShowWarning(); 
-            return;
+            GameEvents.ShowWarning(); // UIHandler가 TriggerWarning 구독 중
+            return;                   // 패널 유지
         }
-        
-        
+
         Debug.Log("Hammer 선택");
         panel.SetActive(false);
-        OnWeaponSelected?.Invoke(); // GameManager에 전달
-              
+        
+        GameEvents.WeaponSelected(true); // GameManager/Orchestrator에 알림
     }
 
     public void OnClick_Bak()
     {
-        if (!btnBak.activeSelf)
+        if (allowedForPlayer != AllowedWeapon.Bak)
         {
             Debug.Log("You chose the wrong weapon");
             GameEvents.ShowWarning();
@@ -62,6 +66,8 @@ public class WeaponHandler : MonoBehaviour
 
         Debug.Log("Bak 선택");
         panel.SetActive(false);
-        OnWeaponSelected?.Invoke(); // GameManager에 전달
+     
+        GameEvents.WeaponSelected(false);
     }
 }
+

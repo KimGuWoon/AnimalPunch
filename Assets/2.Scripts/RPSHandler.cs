@@ -26,10 +26,16 @@ public class RPSHandler : MonoBehaviour
     private Transform aiHeadTransform;
     private Coroutine timerCoroutine;
 
+    // 중복 실행 방지
+    private Coroutine animCoroutine;
+    private bool isAnimating = false;
+    private bool isChoiceLocked = false;
+
     public Canvas canvas;
 
     private void Awake()
     {
+        // 인덱스 1~3만 사용 (1:가위, 2:바위, 3:보)
         rpsSprites = new Sprite[] { null, scissorsSprite, rockSprite, paperSprite };
 
         rpsPanel.SetActive(false);
@@ -47,9 +53,10 @@ public class RPSHandler : MonoBehaviour
     private void OnDisable()
     {
         GameEvents.OnShowRPS -= ShowRPS;
-        GameEvents.OnSetPlayerAnchor += SetPlayerAnchor;
+        GameEvents.OnSetPlayerAnchor -= SetPlayerAnchor; // 중요: -=
         GameEvents.OnSetAIAnchor -= SetAIAnchor;
     }
+
     public void SetPlayerAnchor(Transform anchor) => playerHeadTransform = anchor;
     public void SetAIAnchor(Transform anchor) => aiHeadTransform = anchor;
     public Transform GetPlayerAnchor() => playerHeadTransform;
@@ -57,69 +64,69 @@ public class RPSHandler : MonoBehaviour
 
     public void ShowRPS()
     {
+        // 상태 초기화 + 중복 코루틴 정리
+        isChoiceLocked = false;
+        isAnimating = false;
+
+        if (animCoroutine != null) { StopCoroutine(animCoroutine); animCoroutine = null; }
+        if (timerCoroutine != null) { StopCoroutine(timerCoroutine); timerCoroutine = null; }
+
         playerChoice = RPS.None;
+
         rpsPanel.SetActive(true);
-        EventSystem.current.SetSelectedGameObject(null);
+        EventSystem.current?.SetSelectedGameObject(null);
+
         timerCoroutine = StartCoroutine(CountdownTimer());
     }
 
     IEnumerator CountdownTimer()
     {
-        float timeLeft = 5f;
-        while (timeLeft > 0)
+        float timeLeft = 3f;
+        while (timeLeft > 0f)
         {
             timerText.text = $"{timeLeft:F0}";
             yield return new WaitForSeconds(1f);
-            timeLeft--;
+            timeLeft -= 1f;
         }
 
         if (playerChoice == RPS.None)
             playerChoice = (RPS)Random.Range(1, 4);
 
         aiChoice = (RPS)Random.Range(1, 4);
+        isChoiceLocked = true;
         rpsPanel.SetActive(false);
 
-        StartCoroutine(RPSShowAnimation(playerChoice, aiChoice));
+        if (animCoroutine != null) StopCoroutine(animCoroutine);
+        animCoroutine = StartCoroutine(RPSShowAnimation(playerChoice, aiChoice));
     }
 
-    public void OnSelectScissors()
-    {
-        ConfirmPlayerChoice(RPS.Scissors);
-    }
+    public void OnSelectScissors() { Debug.Log("[RPS] Button: Scissors"); ConfirmPlayerChoice(RPS.Scissors); }
+    public void OnSelectRock() { Debug.Log("[RPS] Button: Rock"); ConfirmPlayerChoice(RPS.Rock); }
+    public void OnSelectPaper() { Debug.Log("[RPS] Button: Paper"); ConfirmPlayerChoice(RPS.Paper); }
 
-    public void OnSelectRock()
+    private void ConfirmPlayerChoice(RPS choice)
     {
-        ConfirmPlayerChoice(RPS.Rock);
-    }
-
-    public void OnSelectPaper()
-    {
-        ConfirmPlayerChoice(RPS.Paper);
+        if (isAnimating) return;
+        playerChoice = choice;
     }
 
     IEnumerator RPSShowAnimation(RPS finalPlayer, RPS finalAI)
     {
-       
+        isAnimating = true;
+
         float duration = 1.5f;
         float elapsed = 0f;
 
         playerRPSImageUI.gameObject.SetActive(true);
         aiRPSImageUI.gameObject.SetActive(true);
 
-        Sprite[] animSprites = new Sprite[] {
-        null,            // 인덱스 0 (안 씀)
-        scissorsSprite,  // 1: Scissors
-        rockSprite,      // 2: Rock
-        paperSprite      // 3: Paper
-    };
-
         while (elapsed < duration)
         {
-            int rand1 = Random.Range(1, 4); // 1~3
-            int rand2 = Random.Range(1, 4);
+            var r1 = (RPS)Random.Range(1, 4);
+            var r2 = (RPS)Random.Range(1, 4);
 
-            playerRPSImageUI.GetComponent<Image>().sprite = animSprites[rand1];
-            aiRPSImageUI.GetComponent<Image>().sprite = animSprites[rand2];
+            playerRPSImageUI.GetComponent<Image>().sprite = GetSprite(r1);
+            aiRPSImageUI.GetComponent<Image>().sprite = GetSprite(r2);
 
             elapsed += 0.1f;
             yield return new WaitForSeconds(0.1f);
@@ -128,29 +135,17 @@ public class RPSHandler : MonoBehaviour
         playerRPSImageUI.GetComponent<Image>().sprite = GetSprite(finalPlayer);
         aiRPSImageUI.GetComponent<Image>().sprite = GetSprite(finalAI);
 
+        Debug.Log($"[RPS] Result  Player={finalPlayer}  AI={finalAI}");
+
         yield return new WaitForSeconds(1.2f);
 
         playerRPSImageUI.gameObject.SetActive(false);
         aiRPSImageUI.gameObject.SetActive(false);
 
-       
+        isAnimating = false;
+        animCoroutine = null;
+
         GameEvents.RPSFinished(finalPlayer, finalAI);
-    }
-
-    private void ConfirmPlayerChoice(RPS choice)
-    {
-        if (playerChoice != RPS.None) return; // 이미 선택했으면 무시
-
-        playerChoice = choice;
-
-        if (timerCoroutine != null)
-            StopCoroutine(timerCoroutine);  // 타이머 중단
-
-        aiChoice = (RPS)Random.Range(1, 4);
-
-        rpsPanel.SetActive(false);
-
-        StartCoroutine(RPSShowAnimation(playerChoice, aiChoice));  // 애니메이션 즉시 시작
     }
 
     Sprite GetSprite(RPS choice)
@@ -177,6 +172,4 @@ public class RPSHandler : MonoBehaviour
         Vector3 screenPos = Camera.main.WorldToScreenPoint(target.position + Vector3.up * 0.3f);
         ui.position = screenPos;
     }
-
-    
 }

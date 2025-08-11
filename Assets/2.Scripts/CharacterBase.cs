@@ -41,6 +41,11 @@ public abstract class CharacterBase : MonoBehaviour
 
     public abstract void PlayAttackAnimation();
 
+    public virtual void PlayBlockReaction()
+    {
+        if (animator != null) animator.SetTrigger("isBlock");
+    }
+
     protected virtual void Die()
     {
         Debug.Log($"{gameObject.name} »ç¸Á");

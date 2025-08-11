@@ -62,8 +62,8 @@ public class UIHandler : MonoBehaviour
         }
         color.a = 0;
         stageText.color = color;
-        
-        GameEvents.TriggerShowRPS();
+
+        GameEvents.TriggerStageIntroFinished();
     }
 
     private void ShowEvadeText(bool isPlayer, Vector3 worldPos)

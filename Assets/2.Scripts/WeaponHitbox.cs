@@ -1,96 +1,67 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Collider))]
 public class WeaponHitbox : MonoBehaviour
 {
     public enum OwnerType { Player, AI }
     public OwnerType owner;
-  
 
-    public int damage = 1; // 기본 데미지
+    [Header("Damage")]
+    public int damage = 1;
+
+    [Header("Hit Cooldown (sec)")]
+    [SerializeField] private float hitCooldown = 0.4f;
+
     private bool canDealDamage = true;
 
-    private Transform playerAnchor;
-    private Transform aiAnchor;
-
-    private void OnEnable()
+    private void Reset()
     {
-        GameEvents.OnSetPlayerAnchor += SetPlayerAnchor;
-        GameEvents.OnSetAIAnchor += SetAIAnchor;
+        // 히트박스 콜라이더는 반드시 Trigger
+        var col = GetComponent<Collider>();
+        if (col) col.isTrigger = true;
     }
-
-    private void OnDisable()
-    {
-        GameEvents.OnSetPlayerAnchor -= SetPlayerAnchor;
-        GameEvents.OnSetAIAnchor -= SetAIAnchor;
-    }
-
-    private void SetPlayerAnchor(Transform anchor)
-    {
-        playerAnchor = anchor;
-    }
-
-    private void SetAIAnchor(Transform anchor)
-    {
-        aiAnchor = anchor;
-    }
-
 
     private void OnTriggerEnter(Collider other)
     {
         if (!canDealDamage) return;
+       
+        if (owner == OwnerType.Player)
+        {
+            var ai = other.GetComponentInParent<AIController>();
+            if (ai == null) return;
 
-        if (owner == OwnerType.Player && other.CompareTag("AI"))
-        {
-            AIController ai = other.GetComponent<AIController>();
-            if (ai != null)
+            if (ai.IsBlocking())
             {
-                if (ai.IsBlocking())
-                {
-                    Debug.Log("AI가 회피(방어)에 성공함!");
-                    if (aiAnchor != null)
-                    {
-                        GameEvents.EvadeOccurred(false, aiAnchor.position);
-                    }
-                }
-                else
-                {
-                    ai.TakeHit(damage);
-                }
-                StartCoroutine(DisableTemporarily());
+                GameEvents.EvadeOccurred(false, ai.transform.position); // AI 방어 → 빨강
+                ai.PlayBlockReaction();                                  // 블록 모션 보장
+                return;
             }
+
+            ai.TakeHit(damage);
+            StartCoroutine(Cooldown());
         }
-        else if (owner == OwnerType.AI && other.CompareTag("Player"))
+        else if (owner == OwnerType.AI)
         {
-            PlayerController player = other.GetComponent<PlayerController>();
-            if (player != null)
+            var player = other.GetComponentInParent<PlayerController>();
+            if (player == null) return;
+
+            if (player.IsBlocking())
             {
-                if (player.IsBlocking())
-                {
-                    Debug.Log("플레이어가 회피(방어)에 성공함!");
-                    if (playerAnchor != null)
-                    {
-                        GameEvents.EvadeOccurred(true, playerAnchor.position);
-                    }
-                }
-                else
-                {
-                    player.TakeHit(damage);
-                }
-                StartCoroutine(DisableTemporarily());
+                GameEvents.EvadeOccurred(true, player.transform.position); // 플레이어 방어 → 노랑
+                player.PlayBlockReaction();
+                return;
             }
+
+            player.TakeHit(damage);
+            StartCoroutine(Cooldown());
         }
     }
 
-
-
-    private System.Collections.IEnumerator DisableTemporarily()
+    private IEnumerator Cooldown()
     {
         canDealDamage = false;
-        yield return new WaitForSeconds(1f); // 연속 타격 방지 시간
+        yield return new WaitForSeconds(hitCooldown);
         canDealDamage = true;
     }
-
-    
 }

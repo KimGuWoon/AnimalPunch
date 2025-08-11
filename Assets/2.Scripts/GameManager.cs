@@ -42,21 +42,21 @@
     }
 
     private void OnEnable()
-    {
-        WeaponHandler.OnWeaponSelected += OnPlayerWeaponSelected;        
+    {       
         GameEvents.OnRPSFinished += EvaluateRPSResult;
+        GameEvents.OnWeaponSelected += OnWeaponSelected;
+        GameEvents.OnStageIntroFinished += OnStageIntroFinished;
     }
 
     private void OnDisable()
-    {
-        WeaponHandler.OnWeaponSelected -= OnPlayerWeaponSelected;
+    {      
         GameEvents.OnRPSFinished -= EvaluateRPSResult;
+        GameEvents.OnWeaponSelected -= OnWeaponSelected;
+        GameEvents.OnStageIntroFinished -= OnStageIntroFinished;
     }
 
     private void Start()
-    {
-        allowGameStart = true;
-
+    {     
         if (player == null)
             player = FindObjectOfType<PlayerController>();
 
@@ -81,21 +81,31 @@
                 case GameState.RPS_Select:
                     Debug.Log("가위바위보 선택 시작");
                     SetPlayerMovement(PlayerController.MovementMode.Locked);
+                    GameEvents.TriggerShowRPS();
                     yield return new WaitUntil(() => currentState != GameState.RPS_Select);
                     break;
 
                 case GameState.Weapon_Select:
                     Debug.Log("무기 선택 단계");
                     SetPlayerMovement(PlayerController.MovementMode.Locked);
-                    GameEvents.TriggerShowWeaponPanel(UserData.isPlayerWinner); 
-                    ai.SelectWeaponBasedOnResult(!UserData.isPlayerWinner);
+                    GameEvents.TriggerShowWeaponPanel(UserData.isPlayerWinner);                     
                     yield return new WaitUntil(() => currentState == GameState.Battle);
                     break;
 
                 case GameState.Battle:
                     Debug.Log("전투 시작");
                     SetPlayerMovement(PlayerController.MovementMode.Battle);
-                    yield return new WaitForSeconds(7f);
+
+                    float t = 0f;
+                    while (currentState == GameState.Battle && t < 7f)
+                    {
+                        t += Time.deltaTime;
+                        yield return null;
+                    }
+
+                    // 누군가 죽어 RoundEnd로 바뀌었으면 더 진행하지 않음
+                    if (currentState != GameState.Battle) break;
+
                     SetPlayerMovement(PlayerController.MovementMode.Locked);
                     currentState = GameState.RPS_Select;
                     break;
@@ -114,6 +124,10 @@
             yield return null;
         }
     }
+    private void OnStageIntroFinished()
+    {
+        allowGameStart = true; // Waiting → RPS_Select 넘어갈 준비 완료
+    }
 
     void SetPlayerMovement(PlayerController.MovementMode mode)
     {
@@ -128,10 +142,16 @@
         }
     }
 
-    public void OnPlayerWeaponSelected()
+    private void OnWeaponSelected(bool isHammer)
     {
+        if (player == null)
+            player = FindObjectOfType<PlayerController>();
+
+        player?.EquipWeapon(isHammer);
+       
         currentState = GameState.Battle;
     }
+ 
 
     public void EvaluateRPSResult(RPSHandler.RPS player, RPSHandler.RPS ai)
     {

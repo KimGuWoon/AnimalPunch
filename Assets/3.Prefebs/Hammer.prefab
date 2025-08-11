@@ -185,4 +185,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   owner: 0
-  damage: 4
+  damage: 3
+  hitCooldown: 0.4

@@ -457,8 +457,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: RPSManager, Assembly-CSharp
+      - m_Target: {fileID: 1559180950}
+        m_TargetAssemblyTypeName: RPSHandler, Assembly-CSharp
         m_MethodName: OnSelectPaper
         m_Mode: 1
         m_Arguments:
@@ -3493,6 +3493,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gatePrefab: {fileID: 1378049632288417995, guid: cc53e4d66a4622b4da54908d7698c213,
     type: 3}
+  spawnPoint: {fileID: 726834223}
 --- !u!1 &1243915247
 GameObject:
   m_ObjectHideFlags: 0
@@ -5235,8 +5236,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: RPSManager, Assembly-CSharp
+      - m_Target: {fileID: 1559180950}
+        m_TargetAssemblyTypeName: RPSHandler, Assembly-CSharp
         m_MethodName: OnSelectScissors
         m_Mode: 1
         m_Arguments:
@@ -5761,8 +5762,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: RPSManager, Assembly-CSharp
+      - m_Target: {fileID: 1559180950}
+        m_TargetAssemblyTypeName: RPSHandler, Assembly-CSharp
         m_MethodName: OnSelectRock
         m_Mode: 1
         m_Arguments:
