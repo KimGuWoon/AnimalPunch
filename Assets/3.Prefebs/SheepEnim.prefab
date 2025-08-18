@@ -1100,7 +1100,7 @@ Transform:
   m_GameObject: {fileID: 7515138771735140481}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.2, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1258,6 +1258,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1bceb5c48cdb224ea826a7b2859bd67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxHealth: 50
   currentState: 0
   healthBarUI: {fileID: 0}
   hammerPrefab: {fileID: 1005534870006111387, guid: 1c33a6c301520864b8d4482261a348d6,
@@ -1266,7 +1267,9 @@ MonoBehaviour:
     type: 3}
   moveSpeed: 2
   stoppingDistance: 0.5
-  maxHealth: 50
+  blockChance: 0.12
+  blockDuration: 0.6
+  blockCooldown: 2
 --- !u!1 &8281461039101486229
 GameObject:
   m_ObjectHideFlags: 0

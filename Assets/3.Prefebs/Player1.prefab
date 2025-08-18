@@ -234,7 +234,7 @@ Transform:
   m_GameObject: {fileID: 1415979505528577627}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.2, z: 0}
+  m_LocalPosition: {x: -0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -647,6 +647,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6137c27c1aafee04c879461d54facf83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxHealth: 50
   movementMode: 0
   hammerPrefab: {fileID: 1005534870006111387, guid: 1c33a6c301520864b8d4482261a348d6,
     type: 3}
@@ -654,9 +655,8 @@ MonoBehaviour:
     type: 3}
   handTransform: {fileID: 9195393050272968477}
   healthBarUI: {fileID: 0}
-  playermoveSpeed: 2
-  playerJumpPower: 80
-  maxHealth: 50
+  moveSpeed: 2
+  jumpPower: 80
 --- !u!1 &4971592029225921918
 GameObject:
   m_ObjectHideFlags: 0

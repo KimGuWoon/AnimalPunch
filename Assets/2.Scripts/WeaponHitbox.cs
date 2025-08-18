@@ -15,6 +15,26 @@ public class WeaponHitbox : MonoBehaviour
 
     private bool canDealDamage = true;
 
+    private bool isActive = false;
+    private Collider myCol;
+
+    private void Awake()
+    {
+        myCol = GetComponent<Collider>();
+        if (myCol) myCol.isTrigger = true;
+
+        // 콜라이더는 항상 켜둔다.
+        // (공격 타이밍만 데미지 주기: isActive로 제어)
+        if (myCol) myCol.enabled = true;
+        isActive = false;
+    }
+
+    // 외부에서 공격 타이밍에 켜고/끄기
+    public void SetActive(bool active)
+    {
+        isActive = active;
+    }
+
     private void Reset()
     {
         // 히트박스 콜라이더는 반드시 Trigger
@@ -24,32 +44,50 @@ public class WeaponHitbox : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!canDealDamage) return;
-       
+        TryHit(other);  //  Enter 시도
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        TryHit(other);  //  이미 겹친 뒤 공격창이 켜진 경우를 위해 Stay에서도 시도
+    }
+
+    private void TryHit(Collider other)
+    {
+        if (!isActive) return;      //  공격 창이 아닐 땐 무시
+        if (!canDealDamage) return; // 쿨다운 중이면 무시
+
         if (owner == OwnerType.Player)
         {
-            var ai = other.GetComponentInParent<AIController>();
+            // AI 찾기(안전하게)
+            var ai = other.GetComponentInParent<AIController>()
+                  ?? other.GetComponent<AIController>()
+                  ?? other.GetComponentInChildren<AIController>();
             if (ai == null) return;
 
             if (ai.IsBlocking())
             {
-                GameEvents.EvadeOccurred(false, ai.transform.position); // AI 방어 → 빨강
-                ai.PlayBlockReaction();                                  // 블록 모션 보장
+                GameEvents.EvadeOccurred(false, ai.transform.position);
+                ai.PlayBlockReaction();
+                StartCoroutine(Cooldown());  // 방어 때도 쿨다운 적용 (연타 방지)
                 return;
             }
 
             ai.TakeHit(damage);
             StartCoroutine(Cooldown());
         }
-        else if (owner == OwnerType.AI)
+        else // OwnerType.AI
         {
-            var player = other.GetComponentInParent<PlayerController>();
+            var player = other.GetComponentInParent<PlayerController>()
+                      ?? other.GetComponent<PlayerController>()
+                      ?? other.GetComponentInChildren<PlayerController>();
             if (player == null) return;
 
             if (player.IsBlocking())
             {
-                GameEvents.EvadeOccurred(true, player.transform.position); // 플레이어 방어 → 노랑
+                GameEvents.EvadeOccurred(true, player.transform.position);
                 player.PlayBlockReaction();
+                StartCoroutine(Cooldown());  // 방어 때도 쿨다운
                 return;
             }
 

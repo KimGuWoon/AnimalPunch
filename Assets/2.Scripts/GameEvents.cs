@@ -24,6 +24,19 @@ public static class GameEvents
         OnShowRPS?.Invoke();
     }
 
+    // 배틀 UI 관련
+    public static event System.Action<float> OnBattleTimerStart; // seconds
+    public static event System.Action OnBattleTimerStop;
+    public static event System.Action OnBattleTimerTimeUp;
+
+    public static void InvokeBattleTimerStart(float seconds) => OnBattleTimerStart?.Invoke(seconds);
+    public static void InvokeBattleTimerStop() => OnBattleTimerStop?.Invoke();
+    public static void InvokeBattleTimerTimeUp() => OnBattleTimerTimeUp?.Invoke();
+
+    // 가위바위보 결과 시점
+    public static event System.Action<bool> OnRPSResult;
+    public static void RPSResult(bool playerWon) => OnRPSResult?.Invoke(playerWon);
+
     // 무기 선택 완료 (true = Hammer 선택)
     public static event Action<bool> OnWeaponSelected;
     public static void WeaponSelected(bool isHammer)

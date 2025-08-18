@@ -17,7 +17,7 @@ public class AIController : CharacterBase
     private Transform playerTransform;
     private bool isAttacking = false;
     private Coroutine aiChooseWeaponRoutine;
-
+ 
     [Header("Defense (AI Block)")]
     [Range(0f, 1f)] public float blockChance = 0.12f; // 기존 0.30 → 0.12로 하향
     public float blockDuration = 0.6f;                // 기존 1.0 → 0.6초
@@ -66,8 +66,11 @@ public class AIController : CharacterBase
 
     void Update()
     {
-        if (GameManager.Instance.currentState != GameManager.GameState.Battle)
+        if (IsDead || currentState == AIState.Dead)
+        {
+            animator.SetBool("isWalk", false);
             return;
+        }
 
         if (currentState == AIState.MoveToPlayer && currentWeapon != null)
         {
@@ -105,12 +108,33 @@ public class AIController : CharacterBase
                 weaponPosTransform
             );
 
-            WeaponHitbox hitbox = currentWeapon.GetComponentInChildren<WeaponHitbox>();
-            if (hitbox != null)
-                hitbox.owner = WeaponHitbox.OwnerType.AI;
+            var boxes = currentWeapon.GetComponentsInChildren<WeaponHitbox>(true);
+            int count = boxes != null ? boxes.Length : 0;
+            Debug.Log($"[AI Equip] {selected.name} hitbox count = {count}");
+
+            if (count == 0)
+            {
+                Debug.LogWarning($"[AI Equip] {selected.name} 안에 WeaponHitbox가 없습니다.");
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    boxes[i].owner = WeaponHitbox.OwnerType.AI;
+                    boxes[i].SetActive(false); // 기본 OFF (공격 타이밍에만 ON)
+                    Debug.Log($"[AI Equip] box[{i}] obj='{boxes[i].gameObject.name}', damage={boxes[i].damage}");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[AI Equip] weaponPosTransform 또는 selected 프리팹이 비어있습니다.");
         }
 
-        StartChase(); // 딜레이 후 장착이 끝나면 추격 시작
+        // 무기 장착 완료 → 즉시 배틀 진입 & 추격 시작
+        GameManager.Instance.ForceEnterBattleNow();
+        StartChase();
+
         aiChooseWeaponRoutine = null;
     }
     private void MoveToPlayer()
@@ -131,7 +155,9 @@ public class AIController : CharacterBase
         else
         {
             animator.SetBool("isWalk", false);
-            if (!isAttacking)
+
+            // AI는 플레이어와 마주치면, Battle 상태일 때 바로 공격
+            if (!isAttacking && GameManager.Instance.currentState == GameManager.GameState.Battle)
                 StartCoroutine(AttackRoutine());
         }
     }
@@ -143,8 +169,18 @@ public class AIController : CharacterBase
 
         PlayAttackAnimation();
 
-        yield return new WaitForSeconds(0.5f);
+        // 윈드업
+        yield return new WaitForSeconds(0.08f);
 
+        var boxes = currentWeapon ? currentWeapon.GetComponentsInChildren<WeaponHitbox>(true) : null;
+        if (boxes != null) foreach (var b in boxes) b.SetActive(true);
+
+        // 유효 타임
+        yield return new WaitForSeconds(0.35f);
+
+        if (boxes != null) foreach (var b in boxes) b.SetActive(false);
+
+        // 방어 시도
         if (Time.time - lastBlockTime >= blockCooldown && Random.value < blockChance)
         {
             yield return StartCoroutine(BlockForSeconds(blockDuration));
@@ -225,9 +261,49 @@ public class AIController : CharacterBase
         isBlocking = false;
     }
 
-    protected override void Die()
+    public override void Die()
     {
+        // 중복 방지
+        if (currentState == AIState.Dead) return;
+
+        // 1) 상태 고정 + 루틴 완전 정지
+        currentState = AIState.Dead;
+        StopAllCoroutines();
+        isAttacking = false;
+
+        // 2) 이동 완전 정지(물리 값도 0)
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // 3) 공통 죽음 처리 (애니메이션 트리거, 무기 파괴, RoundEnd 등)
         base.Die();
+
+        // 4) 게이트 생성
         GateHandler.TriggerAIDeath();
+
+        // 5) 한 프레임 뒤 이 컴포넌트 비활성(안전장치)
+        StartCoroutine(DisableThisAfterSeconds(2.5f));
+    }
+
+    private IEnumerator DisableThisAfterSeconds(float secs)
+    {
+        yield return new WaitForSeconds(secs);
+        this.enabled = false;
+    }
+
+    public void ReviveForRespawn(Vector3 pos)
+    {
+        transform.position = pos;
+
+        // 공통 리셋
+        ReviveCommon();
+
+        // AI 전용 초기화
+        currentState = AIState.Idle;
+        StopAllCoroutines();
     }
 }
+
